@@ -1,0 +1,96 @@
+### Normal Distribution for Survival Data Generation  ####
+# 100 vs 80
+s1<-rnorm(5, 90, 20)
+d1<-rbinom(5,1,0.30)
+
+s2<-rnorm(5, 90, 20)
+d2<-rbinom(5,1,0.35)
+
+data1<-cbind(s1,d1)
+data2<-cbind(s2,d2)
+
+# 100 vs 60
+s3<-rnorm(5, 90, 20)
+d3<-rbinom(5,1,0.30)
+
+s4<-rnorm(5, 90, 20)
+d4<-rbinom(5,1,0.40)
+
+data3<-cbind(s3,d3)
+data4<-cbind(s4,d4)
+
+# 100 vs 40
+s5<-rnorm(5, 90, 20)
+d5<-rbinom(5,1,0.30)
+
+s6<-rnorm(5, 90, 20)
+d6<-rbinom(5,1,0.45)
+
+data5<-cbind(s5,d5)
+data6<-cbind(s6,d6)
+
+# 100 vs 20
+s7<-rnorm(5, 90, 20)
+d7<-rbinom(5,1,0.30)
+
+s8<-rnorm(5, 90, 20)
+d8<-rbinom(5,1,0.50)
+
+data7<-cbind(s7,d7)
+data8<-cbind(s8,d8)
+
+# 80 vs 80
+s9<-rnorm(5, 90, 20)
+d9<-rbinom(5,1,0.30)
+
+s10<-rnorm(5, 90, 20)
+d10<-rbinom(5,1,0.50)
+
+data9<-cbind(s9,d9)
+data10<-cbind(s10,d10)
+
+# 80 vs 60
+s11<-rnorm(5, 90, 20)
+d11<-rbinom(5,1,0.30)
+
+s12<-rnorm(5, 90, 20)
+d12<-rbinom(5,1,0.50)
+
+data9<-cbind(s9,d9)
+data10<-cbind(s10,d10)
+
+# 80 vs 40
+
+# 80 vs 20
+
+
+t.obs=s1
+t.cen=s1
+for(i in 1:nrow(data1))
+{
+  if(d1[i]==1){
+    t.cen[i]=0
+  }
+  else{
+    t.obs[i]=NA
+  }
+}
+data1=data.frame(t.obs,t.cen)
+
+}
+
+
+#Data
+data=list(k=nrow(data1),
+     t.obs=data1$t.obs,
+     t.cen=data1$t.cen)
+
+#inits
+inits=list(t.obs=c(NA,150,150,NA,150),
+     p.mu=rbeta(1,0.5,0.5),p.sigma=rbeta(1,0.5,0.5))
+
+#parameters
+parameters=c("p.mu","p.sigma","t.obs")
+
+comparison.sim<-bugs(data,inits, model.file = "model.txt",parameters.to.save =parameters,
+                     n.chains=3,n.iter=1000,n.burnin= 500,debug=TRUE)
