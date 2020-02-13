@@ -1,0 +1,272 @@
+rm(list = ls(all.names = TRUE))
+setwd("C:/Users/Tania/Desktop/ACTREC/3 Scenario Study")
+
+####Monotherapy Dataset####
+dose_120<-sample(c('120'), 60, replace= TRUE)
+dose_120
+dose_160<-sample(c('160'), 60, replace= TRUE)
+dose_160
+dose_200<-sample(c('200'), 60, replace= TRUE)
+dose_200
+dose_240<-sample(c('240'), 60, replace= TRUE)
+dose_240
+
+surv_time<-rnorm(240, mean=30, sd=2.3)
+surv_time
+
+gender<-sample(c('1','2'), 240, replace=TRUE)
+gender
+
+death<-sample(c('1','0'), 240, replace= TRUE)
+death
+
+dose<-c(dose_120, dose_160, dose_200, dose_240)
+dose
+
+
+mdata<-data.frame(surv_time, gender, death, dose)
+mdata
+
+IND1<-rep(0,dim(mdata)[1])
+IND2<-rep(0,dim(mdata)[1])
+IND3<-rep(0,dim(mdata)[1])
+IND4<-rep(0,dim(mdata)[1])
+
+
+for(k in 1:dim(mdata)[1])
+{
+  if(mdata$dose[k]=="120"){
+    IND1[k]=1
+  }
+  else if(mdata$dose[k]=="160"){
+    IND2[k]=1
+  }
+  else if(mdata$dose[k]=="200"){
+    IND3[k]=1
+  }
+  else if(mdata$dose[k]=="240"){
+    IND4[k]=1
+  }
+}
+
+mdata1<-data.frame(surv_time, gender, death, dose, IND1, IND2, IND3, IND4)
+mdata1
+
+write.csv(mdata1, file = "MONO-SIM.csv", row.names = FALSE)
+MONO_DATA<-read.csv("MONO-SIM.csv")
+MONO_DATA
+
+library(R2OpenBUGS)
+library(survival)
+library(survminer)
+library(ggplot2)
+library(ggpubr)
+library(magrittr)
+
+
+####surv_time####
+Surv_time_data<-MONO_DATA$surv_time
+s1<-Surv_time_data[1:60]
+s2<-Surv_time_data[61:120]
+s3<-Surv_time_data[121:180]
+s4<-Surv_time_data[181:240]
+
+surv_time=list()
+surv_time[[1]]<-s1
+surv_time[[2]]<-s2
+surv_time[[3]]<-s3
+surv_time[[4]]<-s4
+
+
+####Four Subsets####
+
+adata<-subset(MONO_DATA,IND1==1)
+t.obs=surv_time[[1]]
+t.cen=surv_time[[1]]
+for(k in 1:length(surv_time[[1]]))
+{
+  if(adata$death[k]==1){
+    t.cen[k]=0
+  }
+  else{
+    t.obs[k]=NA
+  }
+}
+ADATA<-data.frame(t.obs, t.cen)
+
+ADATA_1=list(k=nrow(ADATA),
+             t.obs=ADATA$t.obs,
+             t.cen=ADATA$t.cen)
+###
+
+bdata<-subset(MONO_DATA,IND2==1)
+t.obs=surv_time[[2]]
+t.cen=surv_time[[2]]
+for(k in 1:length(surv_time[[2]]))
+{
+  if(bdata$death[k]==1){
+    t.cen[k]=0
+  }
+  else{
+    t.obs[k]=NA
+  }
+}
+BDATA<-data.frame(t.obs, t.cen)
+
+BDATA_1=list(k=nrow(BDATA),
+             t.obs=BDATA$t.obs,
+             t.cen=BDATA$t.cen)
+###
+
+cdata<-subset(MONO_DATA,IND3==1)
+t.obs=surv_time[[3]]
+t.cen=surv_time[[3]]
+for(k in 1:length(surv_time[[3]]))
+{
+  if(cdata$death[k]==1){
+    t.cen[k]=0
+  }
+  else{
+    t.obs[k]=NA
+  }
+}
+CDATA<-data.frame(t.obs, t.cen)
+
+CDATA_1=list(k=nrow(CDATA),
+             t.obs=CDATA$t.obs,
+             t.cen=CDATA$t.cen)
+###
+
+ddata<-subset(MONO_DATA,IND4==1)
+t.obs=surv_time[[4]]
+t.cen=surv_time[[4]]
+for(k in 1:length(surv_time[[4]]))
+{
+  if(ddata$death[k]==1){
+    t.cen[k]=0
+  }
+  else{
+    t.obs[k]=NA
+  }
+}
+DDATA<-data.frame(t.obs, t.cen)
+DDATA
+
+DDATA_1=list(k=nrow(DDATA),
+             t.obs=DDATA$t.obs,
+             t.cen=DDATA$t.cen)
+###
+
+#####Initial value for surv_time for OpeBUGS####
+p1<-ADATA$t.obs
+for(k in 1:length(p1))
+{
+  if(is.na(ADATA$t.obs[k])==FALSE){
+    p1[k]=100
+  }
+}
+p1
+
+p2<-BDATA$t.obs
+for(k in 1:length(p2))
+{
+  if(is.na(BDATA$t.obs[k])==FALSE){
+    p2[k]=100
+  }
+}
+p2
+
+p3<-CDATA$t.obs
+for(k in 1:length(p3))
+{
+  if(is.na(CDATA$t.obs[k])==FALSE){
+    p3[k]=100
+  }
+}
+p3
+
+p4<-DDATA$t.obs
+for(k in 1:length(p4))
+{
+  if(is.na(DDATA$t.obs[k])==FALSE){
+    p4[k]=100
+  }
+}
+p4
+
+
+####INITIALS####
+#inits
+inits=list(t.obs=p1,
+           p.mu=rbeta(1,0.5,0.5),p.sigma=rbeta(1,0.5,0.5))
+
+#parameters
+parameters=c("p.mu","p.sigma","t.obs")
+
+comparison.sim<-bugs(ADATA_1,inits, model.file = "model.txt",parameters.to.save =parameters,
+                     n.chains=3,n.iter=1000,n.burnin= 500,debug=TRUE)
+######## 
+
+
+inits=list(t.obs=p2,
+           p.mu=rbeta(1,0.5,0.5),p.sigma=rbeta(1,0.5,0.5))
+
+#parameters
+parameters=c("p.mu","p.sigma","t.obs")
+
+comparison.sim<-bugs(BDATA_1,inits, model.file = "model.txt",parameters.to.save =parameters,
+                     n.chains=3,n.iter=1000,n.burnin= 500,debug=TRUE)
+########
+
+
+#inits
+inits=list(t.obs=p3,
+           p.mu=rbeta(1,0.5,0.5),p.sigma=rbeta(1,0.5,0.5))
+
+#parameters
+parameters=c("p.mu","p.sigma","t.obs")  
+
+comparison.sim<-bugs(CDATA_1,inits, model.file = "model.txt",parameters.to.save =parameters,
+                     n.chains=3,n.iter=1000,n.burnin= 500,debug=TRUE)
+########
+
+
+#inits
+inits=list(t.obs=p4,
+           p.mu=rbeta(1,0.5,0.5),p.sigma=rbeta(1,0.5,0.5))
+
+#parameters
+parameters=c("p.mu","p.sigma","t.obs")
+
+comparison.sim<-bugs(DDATA_1,inits, model.file = "model.txt",parameters.to.save =parameters,
+                     n.chains=3,n.iter=1000,n.burnin= 500,debug=TRUE)
+####
+
+
+# Fit survival data using the Kaplan-Meier method
+surv_object <- Surv(time = MONO_DATA$surv_time, event= MONO_DATA$death)
+surv_object
+
+fit1 <- survfit(surv_object ~ dose, data=MONO_DATA)
+summary(fit1)
+
+ggsurvplot(fit1, data=MONO_DATA, pval=TRUE, xlim=c(24, 40))
+#p=0.91
+####
+
+z=rep(0:3,each=60)
+forestdf=data.frame(c(adata$surv_time, bdata$surv_time, cdata$surv_time, ddata$surv_time),
+                    c(adata$death, bdata$death, cdata$death, ddata$death),z)
+colnames(forestdf)=c("duration","death","dose")
+
+########## Another way #########################
+
+forestdf$newvar<-NA
+forestdf[which(forestdf$dose==0),"newvar"]<-"120"
+forestdf[which(forestdf$dose==1),"newvar"]<-"160"
+forestdf[which(forestdf$dose==2),"newvar"]<-"200"
+forestdf[which(forestdf$dose==3),"newvar"]<-"240"
+
+forestdf$newvar<-factor(forestdf$newvar)
+testfit<-coxph(Surv(duration,death)~newvar,data=forestdf)
+ggforest(testfit,data=forestdf)
