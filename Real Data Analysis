@@ -1,0 +1,206 @@
+rm(list = ls(all.names = TRUE))
+setwd("C:/Users/Tania/Desktop/ACTREC/3 Scenario Study")
+library(foreign)
+db = file.choose()  #imdata
+
+dataset = read.spss(db, to.data.frame=TRUE)
+dataset
+
+write.csv(dataset, file = "CD-Real.csv", row.names = FALSE)
+REAL_DATA<-read.csv("CD-Real.csv")
+REAL_DATA
+
+library(R2OpenBUGS)
+library(survival)
+library(survminer)
+library(ggplot2)
+library(ggpubr)
+library(magittr)
+
+realdata1<-subset(REAL_DATA,cdose==1)  #wdata
+realdata2<-subset(REAL_DATA,cdose==2)  #xdata
+realdata3<-subset(REAL_DATA,cdose==3)  #ydata
+realdata4<-subset(REAL_DATA,cdose==4)  #zdata
+
+surv_time=list()
+surv_time[[1]]<-realdata1$PFS
+surv_time[[2]]<-realdata2$PFS
+surv_time[[3]]<-realdata3$PFS
+surv_time[[4]]<-realdata4$PFS
+
+
+####Four Subsets####
+t.obs1=realdata1$PFS
+t.cen1=realdata1$PFS
+for(k in 1:length(realdata1$PFS))
+{
+  if(realdata1$Status_coded[k]=="Died"){
+    t.cen1[k]=0
+  }
+  else{
+    t.obs1[k]=NA
+  }
+}
+WDATA<-data.frame(t.obs1, t.cen1)
+
+WDATA_1=list(k=nrow(WDATA),
+             t.obs=WDATA$t.obs1,
+             t.cen=WDATA$t.cen1)
+###
+
+t.obs2=realdata2$PFS
+t.cen2=realdata2$PFS
+for(k in 1:length(realdata2$PFS))
+{
+  if(realdata2$Status_coded[k]=="Died"){
+    t.cen2[k]=0
+  }
+  else{
+    t.obs2[k]=NA
+  }
+}
+XDATA<-data.frame(t.obs2, t.cen2)
+
+XDATA_1=list(k=nrow(XDATA),
+             t.obs=XDATA$t.obs2,
+             t.cen=XDATA$t.cen2)
+###
+
+t.obs3=realdata3$PFS
+t.cen3=realdata3$PFS
+for(k in 1:length(realdata3$PFS))
+{
+  if(realdata3$Status_coded[k]=="Died"){
+    t.cen3[k]=0
+  }
+  else{
+    t.obs3[k]=NA
+  }
+}
+YDATA<-data.frame(t.obs3, t.cen3)
+
+YDATA_1=list(k=nrow(YDATA),
+             t.obs=YDATA$t.obs3,
+             t.cen=YDATA$t.cen3)
+###
+
+t.obs4=realdata4$PFS
+t.cen4=realdata4$PFS
+for(k in 1:length(realdata4$PFS))
+{
+  if(realdata4$Status_coded[k]=="Died"){
+    t.cen4[k]=0
+  }
+  else{
+    t.obs4[k]=NA
+  }
+}
+ZDATA<-data.frame(t.obs4, t.cen4)
+
+ZDATA_1=list(k=nrow(ZDATA),
+             t.obs=ZDATA$t.obs4,
+             t.cen=ZDATA$t.cen4)
+###
+
+#####Initial value for surv_time for OpeBUGS####
+p1<-WDATA$t.obs1
+for(k in 1:length(p1))
+{
+  if(is.na(WDATA$t.obs1[k])==FALSE){
+    p1[k]=100
+  }
+}
+p1
+
+p2<-XDATA$t.obs
+for(k in 1:length(p2))
+{
+  if(is.na(XDATA$t.obs[k])==FALSE){
+    p2[k]=100
+  }
+}
+p2
+
+p3<-YDATA$t.obs
+for(k in 1:length(p3))
+{
+  if(is.na(YDATA$t.obs[k])==FALSE){
+    p3[k]=100
+  }
+}
+p3
+
+p4<-ZDATA$t.obs
+for(k in 1:length(p4))
+{
+  if(is.na(ZDATA$t.obs[k])==FALSE){
+    p4[k]=100
+  }
+}
+p4
+
+
+####INITIALS####
+#inits
+inits=list(t.obs=p1,
+           p.mu=rbeta(1,0.5,0.5),p.sigma=rbeta(1,0.5,0.5))
+
+#parameters
+parameters=c("p.mu","p.sigma","t.obs")
+
+comparison.sim<-bugs(WDATA_1,inits, model.file = "model.txt",parameters.to.save =parameters,
+                     n.chains=3,n.iter=1000,n.burnin= 500,debug=TRUE)
+######## 
+
+
+inits=list(t.obs=p2,
+           p.mu=rbeta(1,0.5,0.5),p.sigma=rbeta(1,0.5,0.5))
+
+#parameters
+parameters=c("p.mu","p.sigma","t.obs")
+
+comparison.sim<-bugs(XDATA_1,inits, model.file = "model.txt",parameters.to.save =parameters,
+                     n.chains=3,n.iter=1000,n.burnin= 500,debug=TRUE)
+########
+
+
+#inits
+inits=list(t.obs=p3,
+           p.mu=rbeta(1,0.5,0.5),p.sigma=rbeta(1,0.5,0.5))
+
+#parameters
+parameters=c("p.mu","p.sigma","t.obs")  
+
+comparison.sim<-bugs(YDATA_1,inits, model.file = "model.txt",parameters.to.save =parameters,
+                     n.chains=3,n.iter=1000,n.burnin= 500,debug=TRUE)
+########
+
+
+#inits
+inits=list(t.obs=p4,
+           p.mu=rbeta(1,0.5,0.5),p.sigma=rbeta(1,0.5,0.5))
+
+#parameters
+parameters=c("p.mu","p.sigma","t.obs")
+
+comparison.sim<-bugs(ZDATA_1,inits, model.file = "model.txt",parameters.to.save =parameters,
+                     n.chains=3,n.iter=1000,n.burnin= 500,debug=TRUE)
+####
+
+# Fit survival data using the Kaplan-Meier method
+surv_object <- Surv(time = REAL_DATA$PFS, event= REAL_DATA$Status_coded=="Died")
+surv_object
+
+fit1 <- survfit(surv_object ~ cdose, data=REAL_DATA)
+summary(fit1)
+
+ggsurvplot(fit1, data=REAL_DATA, pval=TRUE, xlim=c(0, 20))
+#p=0.66
+####
+
+
+z=rep(0:3,each=60)
+z=c(rep(0,5),rep(1,6))
+forestdf=data.frame(c(wdata$surv_time, xdata$surv_time, ydata$surv_time, zdata$surv_time),
+                    c(wdata$death, xdata$death, ydata$death, zdata$death),z)
+colnames(forestdf)=c("duration","death","dose")
