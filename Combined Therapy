@@ -1,0 +1,305 @@
+### Combined Immuno wrt to Doses ###
+rm(list = ls(all.names = TRUE))
+setwd("C:/Users/Tania/Desktop/ACTREC/3 Scenario Study")
+
+####Combinations (dose_c_d)####
+#Cumulative - 120
+dose_30_90<-sample(c('30-90'), 15, replace= TRUE)
+dose_30_90
+dose_40_80<-sample(c('40-80'), 15, replace= TRUE)
+dose_40_80
+dose_50_70<-sample(c('50-70'), 15, replace= TRUE)
+dose_50_70
+dose_60_60<-sample(c('60-60'), 15, replace= TRUE)
+dose_60_60
+
+#Cumulative - 160
+dose_50_110<-sample(c('50-110'), 15, replace= TRUE)
+dose_50_110
+dose_60_100<-sample(c('60-100'), 15, replace= TRUE)
+dose_60_100
+dose_70_90<-sample(c('70-90'), 15, replace= TRUE)
+dose_70_90
+dose_80_80<-sample(c('80-80'), 15, replace= TRUE)
+dose_80_80
+
+#Cumulative - 200
+dose_60_140<-sample(c('60-140'), 15, replace= TRUE)
+dose_60_140
+dose_80_120<-sample(c('80-120'), 15, replace= TRUE)
+dose_80_120
+dose_90_110<-sample(c('90-110'), 15, replace= TRUE)
+dose_90_110
+dose_100_100<-sample(c('100-100'), 15, replace= TRUE)
+dose_100_100
+
+#Cumulative - 240
+dose_180_60<-sample(c('180-60'), 15, replace= TRUE)
+dose_180_60
+dose_160_80<-sample(c('160-80'), 15, replace= TRUE)
+dose_160_80
+dose_140_100<-sample(c('140-100'), 15, replace= TRUE)
+dose_140_100
+dose_120_120<-sample(c('120-120'), 15, replace= TRUE)
+dose_120_120
+
+
+surv_time<-rnorm(240, mean=30, sd=2.3)
+surv_time
+
+gender<-sample(c('1','2'), 240, replace=TRUE)
+gender
+
+death<-sample(c('1','0'), 240, replace= TRUE)
+death
+
+DOSE_COMB<-c(dose_30_90, dose_40_80, dose_50_70, dose_60_60, 
+             dose_50_110, dose_60_100, dose_70_90, dose_80_80, 
+             dose_60_140, dose_80_120, dose_90_110, dose_100_100, 
+             dose_180_60, dose_160_80, dose_140_100, dose_120_120)
+DOSE_COMB
+
+sdata<-data.frame(surv_time, gender, death, DOSE_COMB)
+sdata
+
+IND1<-rep(0,dim(sdata)[1])
+IND2<-rep(0,dim(sdata)[1])
+IND3<-rep(0,dim(sdata)[1])
+IND4<-rep(0,dim(sdata)[1])
+
+for(k in 1:dim(sdata)[1])
+{
+  if(sdata$DOSE_COMB[k]=="30-90"|sdata$DOSE_COMB[k]=="40-80"
+     |sdata$DOSE_COMB[k]=="50-70"|sdata$DOSE_COMB[k]=="60-60"){
+    IND1[k]=1
+  }
+  else if(sdata$DOSE_COMB[k]=="50-110"|sdata$DOSE_COMB[k]=="60-100"
+          |sdata$DOSE_COMB[k]=="70-90"|sdata$DOSE_COMB[k]=="80-80"){
+    IND2[k]=1
+  }
+  else if(sdata$DOSE_COMB[k]=="60-140"|sdata$DOSE_COMB[k]=="80-120"
+          |sdata$DOSE_COMB[k]=="90-110"|sdata$DOSE_COMB[k]=="100-100"){
+    IND3[k]=1
+  }
+  else if(sdata$DOSE_COMB[k]=="180-60"|sdata$DOSE_COMB[k]=="160-80"
+          |sdata$DOSE_COMB[k]=="140-100"|sdata$DOSE_COMB[k]=="120-120"){
+    IND4[k]=1
+  }
+}
+
+
+sdata1<-data.frame(surv_time, gender, death, DOSE_COMB, IND1, IND2, IND3, IND4)
+sdata1
+
+
+write.csv(sdata1, file = "CD-Final.csv", row.names = FALSE)
+CD_DATA<-read.csv("CD-Final.csv")
+CD_DATA
+
+library(R2OpenBUGS)
+library(survival)
+library(survminer)
+
+####surv_time####
+Surv_time_data<-CD_DATA$surv_time
+s1<-Surv_time_data[1:60]
+s2<-Surv_time_data[61:120]
+s3<-Surv_time_data[121:180]
+s4<-Surv_time_data[181:240]
+
+surv_time=list()
+surv_time[[1]]<-s1
+surv_time[[2]]<-s2
+surv_time[[3]]<-s3
+surv_time[[4]]<-s4
+
+####Four Subsets####
+
+wdata<-subset(CD_DATA,IND1==1)
+t.obs=surv_time[[1]]
+t.cen=surv_time[[1]]
+for(k in 1:length(surv_time[[1]]))
+ {
+  if(wdata$death[k]==1){
+    t.cen[k]=0
+  }
+  else{
+    t.obs[k]=NA
+  }
+  }
+WDATA<-data.frame(t.obs, t.cen)
+
+WDATA_1=list(k=nrow(WDATA),
+          t.obs=WDATA$t.obs,
+          t.cen=WDATA$t.cen)
+###
+
+xdata<-subset(CD_DATA,IND2==1)
+t.obs=surv_time[[2]]
+t.cen=surv_time[[2]]
+for(k in 1:length(surv_time[[2]]))
+{
+  if(xdata$death[k]==1){
+    t.cen[k]=0
+  }
+  else{
+    t.obs[k]=NA
+  }
+}
+XDATA<-data.frame(t.obs, t.cen)
+
+XDATA_1=list(k=nrow(XDATA),
+             t.obs=XDATA$t.obs,
+             t.cen=XDATA$t.cen)
+###
+
+ydata<-subset(CD_DATA,IND3==1)
+t.obs=surv_time[[3]]
+t.cen=surv_time[[3]]
+for(k in 1:length(surv_time[[3]]))
+{
+  if(ydata$death[k]==1){
+    t.cen[k]=0
+  }
+  else{
+    t.obs[k]=NA
+  }
+}
+YDATA<-data.frame(t.obs, t.cen)
+
+YDATA_1=list(k=nrow(YDATA),
+             t.obs=YDATA$t.obs,
+             t.cen=YDATA$t.cen)
+###
+
+zdata<-subset(CD_DATA,IND4==1)
+t.obs=surv_time[[4]]
+t.cen=surv_time[[4]]
+for(k in 1:length(surv_time[[4]]))
+{
+  if(zdata$death[k]==1){
+    t.cen[k]=0
+  }
+  else{
+    t.obs[k]=NA
+  }
+}
+ZDATA<-data.frame(t.obs, t.cen)
+ZDATA
+
+ZDATA_1=list(k=nrow(ZDATA),
+             t.obs=ZDATA$t.obs,
+             t.cen=ZDATA$t.cen)
+
+#####Initial value for surv_time for OpeBUGS####
+p1<-WDATA$t.obs
+for(k in 1:length(p1))
+{
+  if(is.na(WDATA$t.obs[k])==FALSE){
+    p1[k]=100
+  }
+}
+p1
+
+p2<-XDATA$t.obs
+for(k in 1:length(p2))
+{
+  if(is.na(XDATA$t.obs[k])==FALSE){
+    p2[k]=100
+  }
+}
+p2
+
+p3<-YDATA$t.obs
+for(k in 1:length(p3))
+{
+  if(is.na(YDATA$t.obs[k])==FALSE){
+    p3[k]=100
+  }
+}
+p3
+
+p4<-ZDATA$t.obs
+ for(k in 1:length(p4))
+ {
+   if(is.na(ZDATA$t.obs[k])==FALSE){
+     p4[k]=100
+   }
+ }
+p4
+
+
+####INITIALS####
+#inits
+inits=list(t.obs=p1,
+           p.mu=rbeta(1,0.5,0.5),p.sigma=rbeta(1,0.5,0.5))
+
+#parameters
+parameters=c("p.mu","p.sigma","t.obs")
+
+comparison.sim<-bugs(WDATA_1,inits, model.file = "model.txt",parameters.to.save =parameters,
+                     n.chains=3,n.iter=1000,n.burnin= 500,debug=TRUE)
+######## 
+
+
+inits=list(t.obs=p2,
+           p.mu=rbeta(1,0.5,0.5),p.sigma=rbeta(1,0.5,0.5))
+
+#parameters
+parameters=c("p.mu","p.sigma","t.obs")
+
+comparison.sim<-bugs(XDATA_1,inits, model.file = "model.txt",parameters.to.save =parameters,
+                     n.chains=3,n.iter=1000,n.burnin= 500,debug=TRUE)
+########
+
+
+#inits
+inits=list(t.obs=p3,
+           p.mu=rbeta(1,0.5,0.5),p.sigma=rbeta(1,0.5,0.5))
+
+#parameters
+parameters=c("p.mu","p.sigma","t.obs")  
+
+comparison.sim<-bugs(YDATA_1,inits, model.file = "model.txt",parameters.to.save =parameters,
+                     n.chains=3,n.iter=1000,n.burnin= 500,debug=TRUE)
+########
+
+
+#inits
+inits=list(t.obs=p4,
+           p.mu=rbeta(1,0.5,0.5),p.sigma=rbeta(1,0.5,0.5))
+
+#parameters
+parameters=c("p.mu","p.sigma","t.obs")
+
+comparison.sim<-bugs(ZDATA_1,inits, model.file = "model.txt",parameters.to.save =parameters,
+                     n.chains=3,n.iter=1000,n.burnin= 500,debug=TRUE)
+
+
+# Fit survival data using the Kaplan-Meier method
+surv_object <- Surv(time = CD_DATA$surv_time, event= CD_DATA$death)
+surv_object
+
+fit1 <- survfit(surv_object ~ DOSE_COMB, data=CD_DATA)
+summary(fit1)
+
+ggsurvplot(fit1, data=CD_DATA, pval=TRUE, xlim=c(20, 50))
+#p=0.81
+####
+
+z=rep(0:3,each=60)
+forestdf=data.frame(c(wdata$surv_time, xdata$surv_time, ydata$surv_time, zdata$surv_time),
+                    c(wdata$death, xdata$death, ydata$death, zdata$death),z)
+colnames(forestdf)=c("duration","death","dose")
+
+########## 1st way #########################
+
+forestdf$newvar<-NA
+forestdf[which(forestdf$dose==0),"newvar"]<-"100"
+forestdf[which(forestdf$dose==1),"newvar"]<-"80"
+forestdf[which(forestdf$dose==2),"newvar"]<-"60"
+forestdf[which(forestdf$dose==3),"newvar"]<-"40"
+
+forestdf$newvar<-factor(forestdf$newvar)
+testfit<-coxph(Surv(duration,death)~newvar,data=forestdf)
+ggforest(testfit,data=forestdf)
