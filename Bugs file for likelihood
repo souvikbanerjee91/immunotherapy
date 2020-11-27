@@ -1,0 +1,144 @@
+MODEL{
+#Likelihood
+    C<-10000
+    for(i in 1:k){
+       #d[i]=categorical(
+       zeros[i] <- 0
+       zeros[i] ~ dpois(logL[i])
+
+       Z[i] ~ dbern(p[i])
+       p[i]<- rho*phi(alpha0+alpha1*d[i])
+
+       pE[i]<-phi(gamma0+gamma1*Z[i])
+       YE1[i]<-(1-pE[i])*lambda*kappa*pow(YE[i],kappa-1) *exp(xi*Z[i])
+       YE2[i]<-pE[i]
+       YE3[i]<-(1-pE[i])*exp(-lambda* pow(YE[i],kappa) *exp(xi*Z[i]))+pE[i]
+       L[i]<-pow(YE1[i],delta1[i])*pow(YE2[i],delta2[i]) *pow(YE3[i],delta3[i])
+       logL[i]<- -log(L[i])+C 
+       }
+
+#Priors
+    alpha0 ~dnorm(0,0.01)
+    alpha1 ~ dgamma(1,1.2)
+    rho ~ dunif(0,1)
+    gamma0 ~ dnorm(0, 0.01)
+    gamma1 ~ dgamma(1,1.2)
+    lambda ~ dgamma(1,1)
+    kappa ~ dgamma(1,1)
+    xi ~ dunif(-2.3,0)
+}
+
+#inits
+list(alpha0=0,alpha1=0.5,rho=0.5,gamma0=0,gamma1=0.5,lambda=0.5, kappa=0.5,xi=-1)
+
+#Data 
+list(k=30)
+Z[] YE[] delta1[] delta2[] delta3[] d[]
+0    6     1        0         0      0
+1    12     0        1         0     0.5
+1    7     0        0         1      1
+0    5     1        0         0      0.5
+1    12     0        1         0     0.5
+0    8     0        0         1      0
+1    12     0        1         0      0
+1    12     0        1         0      1
+0    6     0        0         1      0.5
+0   10     1        0         1      0.5
+0    4     1        0         0      0
+1    12     0        1         0      1
+1    9     0        0         1      0
+0    5     1        0         0      0.5
+1    12     0        1         0      0.5
+0    8     0        0         1      1
+1    12     0        1         0      0
+1    12     0        1         0      0
+0    6     0        0         1      1
+0   10     1        0         1      0.5
+0    6     1        0         0      0
+1    12     0        1         0      1
+1    7     0        0         1      0
+0    5     1        0         0      1
+1    12     0        1         0      1
+0    8     0        0         1      0
+1    10     0        1         0      0
+1    12     0        1         0     1
+0    6     0        0         1      0.5
+0   10     1        0         1      0.5
+END
+
+
+#############################################################
+
+MODEL{
+#Likelihood
+    for(i in 1:k){
+       Z[i] ~ dbern(p[i])
+       p[i]<- rho*phi(alpha0+alpha1*d[i])
+  }
+#Priors
+    alpha0 ~dnorm(0,0.64)
+    alpha1 ~ dgamma(1,1.2)
+    rho ~ dnorm(0.6,1000)
+}
+
+#inits
+list(alpha0=0.1,alpha1=0.5,rho=0.6)
+
+#Data 
+list(k=10)
+Z[]	d[]
+0         0
+1         1
+1         2
+0         2
+1         1
+0         0
+1         0
+1         2
+0         1
+0         1
+END
+
+##########################################################
+
+MODEL{
+#Likelihood
+    C<-10000
+    for(i in 1:k){
+       zeros[i] <- 0
+       zeros[i] ~ dpois(logL[i])
+
+       pE[i]<-phi(gamma0+gamma1*Z[i])
+       YE1[i]<-(1-pE[i])*lambda*kappa*pow(YE[i],kappa-1) *exp(xi*Z[i])
+       YE2[i]<-pE[i]
+       YE3[i]<-(1-pE[i])*exp(-lambda* pow(YE[i],kappa) *exp(xi*Z[i]))+pE[i])
+       L[i]<-pow(YE1[i],delta1[i])*pow(YE2[i],delta2[i]) *pow(YE3[i],delta3[i])
+       logL[i]<- -log(L[i])+C 
+       }
+
+#Priors
+    gamma0 ~ dnorm(0, 0.64)
+    gamma1 ~ dgamma(1,1.2)
+    lambda ~ dgamma(0.1,0.1)
+    kappa ~ dgamma(0.1,0.1)
+    xi ~ dunif(-2.3,0)
+}
+
+#inits
+list(gamma0=0.1,gamma1=0.5,lambda=0.1, kappa=0.1,xi=-1.5)
+
+#Data 
+list(k=10)
+Z[] YE[] delta1[] delta2[] delta3[] 
+0    6     1        0         0     
+1    5     0        1         0     
+1    7     0        0         1     
+0    5     1        0         0     
+1    4     0        1         0     
+0    8     0        0         1     
+1    7     0        1         0     
+1    9     0        1         0     
+0    6     0        0         1     
+0   10     1        0         1     
+END
+
